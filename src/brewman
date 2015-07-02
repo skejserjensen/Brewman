@@ -1,0 +1,465 @@
+#!/usr/bin/env bash
+# Brewman is a thin wrapper around homebrew and homebrew cask simulating the
+# command line interface of pacman, the package manager developed and used by
+# Arch Linux.
+
+### Helper Functions
+function check_for_programs {
+    if [[ "$1" -ne 0 ]]
+    then
+        echo "error: a necessary dependency \"$2\" was not available"
+    fi
+}
+
+function check_for_arguments {
+    if [[ -z "$1" ]]
+    then
+        echo "error: no targets specified (use -h for help)"
+        exit 1
+    fi
+}
+
+function print_formatting_newline {
+    echo
+}
+
+function print_arrow_message {
+    echo -e "\033[1;92m==> \033[39m$1 \033[m"
+}
+
+function print_brew_arrow_message {
+    echo -e "\033[1;34m==> \033[39m$1 \033[m"
+}
+
+
+function print_missing_package_message {
+    echo -e "\033[4;33mWarning\033[m: $1 '$2' is not installed"
+}
+
+function brew_cask_remove_old {
+    print_brew_arrow_message "Removing old versions"
+    for cask in $(brew cask list)
+    do
+        latest="$(brew cask info $cask | grep -o "^/\S*")"
+        folder="$(echo $latest | rev | cut -d'/' -f2- | rev)"
+        for version in "$(ls $folder)"
+        do
+            # Skips the latest version of the current cask
+            if [[ "$folder/$version" == "$latest" ]]
+            then
+                continue
+            fi
+
+            # The version is not the most current so it can safely be deleted
+            echo "$folder/$version"
+            rm -rf "$folder/$version"
+        done
+    done
+}
+
+function brew_remove_with_dependencies {
+    for form in $@
+    do
+        brew remove "$form"
+
+        # Skipped if the formula could not be removed as no orphans are created
+        if [[ "$?" -eq 0 ]]
+        then
+            # Removes the formula's dependencies not used by other formulas
+            orphans=$(join <(brew leaves) <(brew deps "$form"))
+            if [[ ! -z "$orphans" ]]
+            then
+                brew_remove_with_dependencies "$orphans"
+            fi
+        fi
+    done
+}
+
+### Query Functions
+function query {
+    print_arrow_message "Homebrew Cask Query"
+    brew cask list
+    print_formatting_newline
+    print_arrow_message "Homebrew Query"
+    brew list
+}
+
+function query_d {
+    print_arrow_message "Homebrew Cask Query"
+    echo "Nothing to do"
+    print_formatting_newline
+
+    print_arrow_message "Homebrew Query"
+    read -a dependencies <<< $(comm -13 <(brew leaves) <(brew list))
+
+    # Formats the print like brew leaves
+    for dep in "${dependencies[@]}"
+    do
+        echo "$dep"
+    done
+}
+
+function query_e {
+    print_arrow_message "Homebrew Cask Query"
+    brew cask list
+    print_formatting_newline
+    print_arrow_message "Homebrew Query"
+    brew leaves
+}
+
+function query_i {
+    print_arrow_message "Homebrew Cask Query"
+    for cask in $@
+    do
+        # Checks if the cask exists
+        brew cask info "$cask" &>/dev/null
+        if [[ "$?" -eq 1 ]]
+        then
+            brew cask info "$cask"
+            continue
+        fi
+
+        # Checks if the cask is installed
+        brew cask info "$cask" | grep -q "Not installed"
+        if [[ "$?" -eq 1 ]]
+        then
+            brew cask info "$cask"
+        else
+            echo -e "\033[4;33mWarning\033[m: cask '$cask' is not installed"
+        fi
+    done
+    print_formatting_newline
+
+    print_arrow_message "Homebrew Query"
+    for form in $@
+    do
+        # Checks if the formula exists
+        brew info "$form" &>/dev/null
+        if [[ "$?" -eq 1 ]]
+        then
+            brew info "$form"
+            continue
+        fi
+
+        # Checks if the formula is installed
+        brew info "$form" | grep -q "Not installed"
+        if [[ "$?" -eq 1 ]]
+        then
+            brew info "$form"
+            used_by=$(brew uses "$form" --installed)
+            if [[ ! -z "$used_by" ]]
+            then
+                print_brew_arrow_message "Used By Installed Formulas"
+                echo "$used_by"
+                print_formatting_newline
+            fi
+        else
+            echo -e "\033[4;33mWarning\033[m: formula '$form' is not installed"
+        fi
+    done
+}
+
+function query_h {
+cat << EOF
+usage: brewman -Q [package(S)]
+options:
+    -e list cask and formulas installed explicitly by the user
+    -d list formulas installed as dependencies for other formulas
+    -i view information and requiered dependencies for a installed packaged
+EOF
+}
+
+### Remove Functions
+function remove {
+    print_arrow_message "Homebrew Cask Remove"
+    for cask in $@
+    do
+        brew cask remove "$cask"
+    done
+    print_formatting_newline
+    print_arrow_message "Homebrew Remove"
+    for form in $@
+    do
+        brew remove "$form"
+    done
+}
+
+function remove_s {
+    print_arrow_message "Homebrew Cask Remove"
+    for cask in $@
+    do
+        brew cask remove "$cask"
+    done
+    print_formatting_newline
+    print_arrow_message "Homebrew Remove"
+    brew_remove_with_dependencies $@
+}
+
+function remove_h {
+cat << EOF
+usage: brewman -R [options] <package(S)>
+options:
+    -s remove the cask and formula in addition to all orphaned dependencies
+EOF
+}
+
+### Synchronisation Functions
+function synchronise {
+    print_arrow_message "Homebrew Cask Synchronise"
+    no_cask_available=""
+    for cask in $@
+    do
+        brew cask install "$cask"
+        if [[ "$?" -eq 1 ]]
+        then
+            no_cask_available="$no_cask_available $cask"
+        fi
+    done
+    no_cask_available="${no_cask_available:1}"
+
+    if [[ ! -z $no_cask_available ]]
+    then
+        print_formatting_newline
+        print_arrow_message "Homebrew Synchronise"
+        for form in $no_cask_available
+        do
+            brew install "$form"
+        done
+    fi
+}
+
+function synchronise_y {
+    print_arrow_message "Homebrew And Homebrew Cask Update"
+    brew update
+}
+
+function synchronise_u {
+    print_arrow_message "Homebrew Cask Upgrade"
+    for cask in $(brew cask list)
+    do
+        brew cask info "$cask" | grep -q "Not installed"
+        if [[ "$?" -eq 0 ]]
+        then
+            brew cask install "$cask"
+        fi
+    done
+    print_arrow_message "Homebrew Upgrade"
+    brew upgrade --all
+}
+
+function synchronise_yu {
+    synchronise_y
+    print_formatting_newline
+    synchronise_u
+}
+
+function synchronise_i {
+    print_arrow_message "Homebrew Cask Synchronise"
+    for cask in $@
+    do
+        brew cask info "$cask"
+    done
+    print_formatting_newline
+
+    print_arrow_message "Homebrew Synchronise"
+    for form in $@
+    do
+        brew info "$form"
+        used_by=$(brew uses "$form" 2>/dev/null)
+        if [[ ! -z "$used_by" ]]
+        then
+            print_arrow_message "Used By Formulas"
+            echo "$used_by"
+        fi
+    done
+
+}
+
+function synchronise_c {
+    print_arrow_message "Homebrew Cask Cleanup"
+    brew cask cleanup
+    print_formatting_newline
+    print_arrow_message "Homebrew Cleanup"
+    brew cleanup
+}
+
+function synchronise_cc {
+    print_arrow_message "Homebrew Cask Cleanup"
+    brew cask cleanup
+    brew_cask_remove_old
+    print_formatting_newline
+    print_arrow_message "Homebrew Cleanup"
+    brew cleanup -s
+}
+
+function synchronise_s {
+    print_arrow_message "Homebrew Cask Matches"
+    for elem in $@
+    do
+        brew cask search "$elem"
+    done
+    print_formatting_newline
+    print_arrow_message "Homebrew Matches"
+    for elem in $@
+    do
+        brew search "$elem"
+    done
+}
+
+function synchronise_h {
+cat << EOF
+usage: brewman -S [options] [package(S)]
+options:
+    -c removes outdated packages and clears the cache (-cc to scrub the cache)
+    -i view information and requiered dependencies for a package
+    -s performs a substring search of formula names, for regex search use /text/
+    -u upgrades any outdated unpinned brews and all casks
+    -y fetch the newest version of Homebrew from GitHub using git(1)
+EOF
+}
+
+### Version function
+function version {
+cat << EOF
+
+ .--.                   Brewman 0.1.0
+/ _.-' .-.  .-.  .-.    Copyright (C) 2015 Søren Kejser Jensen
+\\  '-. '-'  '-'  '-'
+ '--'                   This program may be freely redistributed under
+                        the terms of the GNU General Public License.
+
+EOF
+    exit 0
+}
+
+### Help function
+function show_help {
+cat << EOF
+usage: brewman <operation> [...]
+operations:
+    brewman -h
+    brewman -V
+    brewman -Q [options] [package(S)]
+    brewman -R [options] <package(S)>
+    brewman -S [options] [package(S)]
+EOF
+}
+
+### Main Function
+# Verifies that both brew and brew cask are installed and available in $PATH
+type brew >/dev/null 2>&1
+check_for_programs "$?" "brew"
+brew cask >/dev/null 2>&1
+check_for_programs "$?" "brew cask"
+
+# Verifies that something was passed to the script and that the actual
+# operation was not accidentally forgotten, leaving a single dash as input
+if [[ "$1" != -* ]]
+then
+    echo "error: no operation specified (use -h for help)"
+    exit 1
+elif [[ "$1" == '-' ]]
+then
+    echo "error: argument '-' specified without input on stdin"
+    exit 1
+fi
+
+# Normalises arguments by moving flags into one block at the beginning
+flags="-"
+arguments=""
+
+for arg in $@
+do
+    if [[ "$arg" == -* ]]
+    then
+        flags="$flags${arg#?}"
+    else
+        arguments="$arguments $arg"
+    fi
+done
+arguments="${arguments:1}"
+
+# Parsing of arguments and execution of operations
+case "$flags" in
+    # Options for -Q (Query)
+    -Q)
+        query
+        ;;
+    -Qd)
+        query_d
+        ;;
+    -Qe)
+        query_e
+        ;;
+    -Qi)
+        check_for_arguments "$arguments"
+        query_i "$arguments"
+        ;;
+    -Qh)
+        query_h
+        ;;
+    # Options for -R (Remove)
+    -R)
+        check_for_arguments "$arguments"
+        remove "$arguments"
+        ;;
+    -Rs)
+        remove_s "$arguments"
+        ;;
+    -Rh)
+        remove_h
+        ;;
+    # Options for -S (Synchronisation)
+    -S)
+        check_for_arguments "$arguments"
+        synchronise "$arguments"
+        ;;
+    -Sy)
+        synchronise_y
+        ;;
+    -Su)
+        synchronise_u
+        ;;
+    -Syu | -Suy)
+        synchronise_yu
+        ;;
+    -Si)
+        check_for_arguments "$arguments"
+        synchronise_i "$arguments"
+        ;;
+    -Sc)
+        synchronise_c
+        ;;
+    -Scc)
+        synchronise_cc
+        ;;
+    -Ss)
+        check_for_arguments "$arguments"
+        synchronise_s "$arguments"
+        ;;
+    -Sh)
+        synchronise_h
+        ;;
+        # Options for -V (Version)
+    -V) version
+        ;;
+    -h)  # Options for -h (Help)
+        show_help
+        ;;
+    *)  # Case for unsupported flags
+        echo "error: invalid option \"$flags\""
+        ;;
+esac
+
+# Removes the empty local Applications directory created by some brew cask
+# commands, but only if it can be determined that it does not contain any data
+local_applications_dir="$HOME/Applications"
+if [[ -d  "$local_applications_dir" ]]
+then
+    local_applications_dir_size=$(du -s "$local_applications_dir" | cut -f1)
+    if [[ "$local_applications_dir_size" == 0 ]]
+    then
+        rm -f "$HOME/Applications/.localized"
+        rmdir "$local_applications_dir"
+    fi
+fi
