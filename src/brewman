@@ -42,7 +42,7 @@ function brew_cask_remove_old {
     do
         latest="$(brew cask info $cask | grep -o "^/\S*")"
         folder="$(echo $latest | rev | cut -d'/' -f2- | rev)"
-        for version in "$(ls $folder)"
+        for version in $(ls $folder)
         do
             # Skips the latest version of the current cask
             if [[ "$folder/$version" == "$latest" ]]
@@ -53,6 +53,7 @@ function brew_cask_remove_old {
             # The version is not the most current so it can safely be deleted
             echo "$folder/$version"
             rm -rf "$folder/$version"
+            rm -rf "$folder/.metadata/$version"
         done
     done
 }
@@ -278,6 +279,7 @@ function synchronise_i {
 function synchronise_c {
     print_arrow_message "Homebrew Cask Cleanup"
     brew cask cleanup
+    brew_cask_remove_old
     print_formatting_newline
     print_arrow_message "Homebrew Cleanup"
     brew cleanup
