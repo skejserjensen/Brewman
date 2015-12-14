@@ -31,9 +31,8 @@ function print_brew_arrow_message {
     echo -e "\033[1;34m==> \033[39m$1 \033[m"
 }
 
-
-function print_missing_package_message {
-    echo -e "\033[4;33mWarning\033[m: $1 '$2' is not installed"
+function print_warning {
+    echo -e "\033[4;33mWarning\033[m: $1"
 }
 
 function brew_cask_remove_old {
@@ -42,6 +41,15 @@ function brew_cask_remove_old {
     do
         latest="$(brew cask info $cask | grep -o "^/\S*")"
         folder="$(echo $latest | rev | cut -d'/' -f2- | rev)"
+
+        # Skip the current cask if the latest version is not installed, as we
+        # lack information about what is considered the latest installed cask
+        if [[ -z "$latest" ]]
+        then
+            print_warning "cask '$cask' is left as is, as an update is released"
+            continue
+        fi
+
         for version in $(ls $folder)
         do
             # Skips the latest version of the current cask
@@ -126,7 +134,7 @@ function query_i {
         then
             brew cask info "$cask"
         else
-            echo -e "\033[4;33mWarning\033[m: cask '$cask' is not installed"
+            print_warning "cask '$cask' is not installed"
         fi
     done
     print_formatting_newline
@@ -155,7 +163,7 @@ function query_i {
                 print_formatting_newline
             fi
         else
-            echo -e "\033[4;33mWarning\033[m: formula '$form' is not installed"
+            print_warning "formula '$form' is not installed"
         fi
     done
 }
