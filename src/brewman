@@ -75,7 +75,7 @@ function brew_remove_with_dependencies {
         if [[ "$?" -eq 0 ]]
         then
             # Removes the formula's dependencies not used by other formulas
-            orphans=$(join <(brew leaves) <(brew deps "$form"))
+            orphans=$(join <(brew leaves) <(brew deps --1 "$form"))
             if [[ ! -z "$orphans" ]]
             then
                 brew_remove_with_dependencies "$orphans"
