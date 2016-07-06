@@ -99,13 +99,9 @@ function query_d {
     print_formatting_newline
 
     print_arrow_message "Homebrew Query"
-    read -a dependencies <<< $(comm -13 <(brew leaves) <(brew list))
-
-    # Formats the print like brew leaves
-    for dep in "${dependencies[@]}"
-    do
-        echo "$dep"
-    done
+    # "brew leaves" lists formulas that are currently not used as a dependency,
+    # not how it was installed, a functionality homebrew seems to be lacking.
+    echo "$(join -v 2 <(brew leaves | sort) <(brew list --full-name | sort))"
 }
 
 function query_e {
