@@ -90,7 +90,7 @@ function query {
     brew cask list
     print_formatting_newline
     print_arrow_message "Homebrew Query"
-    brew list
+    brew list --full-name
 }
 
 function query_d {
