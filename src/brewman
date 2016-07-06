@@ -104,6 +104,31 @@ function query_d {
     echo "$(join -v 2 <(brew leaves | sort) <(brew list --full-name | sort))"
 }
 
+function query_dt {
+    print_arrow_message "Homebrew Cask Query"
+    echo "Nothing to do"
+    print_formatting_newline
+
+    print_arrow_message "Homebrew Query"
+    # "brew leaves" lists formulas that are currently not used as a dependency,
+    # not how it was installed, a functionality homebrew seems to be lacking.
+    deps="$(join -v 2 <(brew leaves | sort) <(brew list --full-name | sort))"
+
+    # As "brew" does not store how formulas are installed, can we only
+    # approximately list formulas that are not required as as runtime
+    # dependency nor explicitly installed. Formulas that are not used as
+    # dependencies at all is listed by "brew leaves" and is indistinguishable
+    # from those installed explicitly, so we list leftover build dependencies.
+    for dep in $deps
+    do
+        dep_for=$(brew uses $dep --installed)
+        if [[ -z $dep_for ]]
+        then
+            echo "$dep"
+        fi
+    done
+}
+
 function query_e {
     print_arrow_message "Homebrew Cask Query"
     brew cask list
@@ -393,6 +418,9 @@ case "$flags" in
         ;;
     -Qd)
         query_d
+        ;;
+    -Qdt)
+        query_dt
         ;;
     -Qe)
         query_e
