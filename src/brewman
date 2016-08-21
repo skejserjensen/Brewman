@@ -39,7 +39,8 @@ function brew_cask_remove_old {
     print_brew_arrow_message "Removing old versions"
     for cask in $(brew cask list)
     do
-        latest="$(brew cask info $cask | grep -o "^/\S*")"
+        # Latest use only the first line as the pattern also can match artefacts
+        latest="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
         folder="$(echo $latest | rev | cut -d'/' -f2- | rev)"
 
         # Skip the current cask if the latest version is not installed, as we
