@@ -39,9 +39,17 @@ function brew_cask_remove_old {
     print_brew_arrow_message "Removing old versions"
     for cask in $(brew cask list)
     do
-        # Latest use only the first line as the pattern also can match artefacts
-        latest="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
-        folder="$(echo $latest | rev | cut -d'/' -f2- | rev)"
+        # As we do not know where the cask is installed we compute it
+        folder="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
+        folder=${folder%/*}
+        if [[ -z "$folder" ]]
+        then
+            print_warning "the location of cask '$cask' could not be computed"
+            continue
+        fi
+
+        # Extracts the latest version of the cask by grepping last version line
+        latest="$(brew cask info $cask | grep -o "^$folder\S*" | tail -n 1)"
 
         # Skip the current cask if the latest version is not installed, as we
         # lack information about what is considered the latest installed cask
@@ -268,10 +276,24 @@ function synchronise_u {
     print_arrow_message "Homebrew Cask Upgrade"
     for cask in $(brew cask list)
     do
-        brew cask info "$cask" | grep -q "Not installed"
-        if [[ "$?" -eq 0 ]]
+        # As we do not know where the cask is installed we compute it
+        folder="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
+        folder=${folder%/*}
+        if [[ -z "$folder" ]]
         then
-            brew cask install "$cask"
+            print_warning "the location of cask '$cask' could not be computed"
+            continue
+        fi
+
+        # The latest available version and latest installed version is computed
+        latest_version="$(brew cask info $cask | grep -m1 : | cut -d' ' -f2)"
+        installed="$(brew cask info $cask | grep -o "^$folder\S*" | tail -n 1)"
+        installed_version=${installed##*/}
+
+        # A difference in version numbers indicates a new version of a cask
+        if [[ $installed_version != $latest_version ]]
+        then
+            brew cask install "$cask" --force
         fi
     done
     print_arrow_message "Homebrew Upgrade"
