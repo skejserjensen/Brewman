@@ -297,7 +297,7 @@ function synchronise_u {
         fi
     done
     print_arrow_message "Homebrew Upgrade"
-    brew upgrade --all
+    brew upgrade
 }
 
 function synchronise_yu {
