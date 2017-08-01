@@ -36,46 +36,6 @@ function print_warning {
     echo -e "\033[4;33mWarning\033[m: $1"
 }
 
-function brew_cask_remove_old {
-    print_brew_arrow_message "Removing old versions"
-    for cask in $(brew cask list)
-    do
-        # As we do not know where the cask is installed we compute it
-        folder="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
-        folder=${folder%/*}
-        if [[ -z "$folder" ]]
-        then
-            print_warning "the location of cask '$cask' could not be computed"
-            continue
-        fi
-
-        # Extracts the latest version of the cask by grepping last version line
-        latest="$(brew cask info $cask | grep -o "^$folder\S*" | tail -n 1)"
-
-        # Skip the current cask if the latest version is not installed, as we
-        # lack information about what is considered the latest installed cask
-        if [[ -z "$latest" ]]
-        then
-            print_warning "cask '$cask' is left as is, as an update is released"
-            continue
-        fi
-
-        for version in $(ls $folder)
-        do
-            # Skips the latest version of the current cask
-            if [[ "$folder/$version" == "$latest" ]]
-            then
-                continue
-            fi
-
-            # The version is not the most current so it can safely be deleted
-            echo "$folder/$version"
-            rm -rf "$folder/$version"
-            rm -rf "$folder/.metadata/$version"
-        done
-    done
-}
-
 function brew_remove_with_dependencies {
     for form in $@
     do
@@ -275,28 +235,13 @@ function synchronise_y {
 
 function synchronise_u {
     print_arrow_message "Homebrew Cask Upgrade"
-    for cask in $(brew cask list)
+    for cask in $(brew cask outdated --greedy --verbose | grep -v latest | cut -d' ' -f1)
     do
-        # As we do not know where the cask is installed we compute it
-        folder="$(brew cask info $cask | grep -m 1 -o "^/\S*")"
-        folder=${folder%/*}
-        if [[ -z "$folder" ]]
-        then
-            print_warning "the location of cask '$cask' could not be computed"
-            continue
-        fi
-
-        # The latest available version and latest installed version is computed
-        latest_version="$(brew cask info $cask | grep -m1 : | cut -d' ' -f2)"
-        installed="$(brew cask info $cask | grep -o "^$folder\S*" | tail -n 1)"
-        installed_version=${installed##*/}
-
-        # A difference in version numbers indicates a new version of a cask
-        if [[ $installed_version != $latest_version ]]
-        then
-            brew cask install "$cask" --force
-        fi
+        # All casks with a version number are updated manually so the folders in
+        # the Caskroom are consistent with the installed version of each cask
+        brew cask reinstall "$cask"
     done
+
     print_arrow_message "Homebrew Upgrade"
     brew upgrade
 }
@@ -332,7 +277,6 @@ function synchronise_i {
 function synchronise_c {
     print_arrow_message "Homebrew Cask Cleanup"
     brew cask cleanup
-    brew_cask_remove_old
     print_formatting_newline
     print_arrow_message "Homebrew Cleanup"
     brew cleanup
@@ -341,7 +285,6 @@ function synchronise_c {
 function synchronise_cc {
     print_arrow_message "Homebrew Cask Cleanup"
     brew cask cleanup
-    brew_cask_remove_old
     print_formatting_newline
     print_arrow_message "Homebrew Cleanup"
     brew cleanup -s
@@ -377,7 +320,7 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.1.2
+ .--.                   Brewman 0.1.3
 / _.-' .-.  .-.  .-.    Copyright (C) 2017 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
