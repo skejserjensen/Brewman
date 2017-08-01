@@ -8,6 +8,7 @@ function check_for_programs {
     if [[ "$1" -ne 0 ]]
     then
         echo "error: a necessary dependency \"$2\" was not available"
+        exit 1
     fi
 }
 
@@ -376,8 +377,8 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.1.0
-/ _.-' .-.  .-.  .-.    Copyright (C) 2015 Søren Kejser Jensen
+ .--.                   Brewman 0.1.1
+/ _.-' .-.  .-.  .-.    Copyright (C) 2017 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
                         the terms of the GNU General Public License.
