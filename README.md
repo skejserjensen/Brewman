@@ -10,5 +10,5 @@ Brewman requires both *homebew* and *homebrew cask* to be installed, and install
 
 3. Make the script executable using *chmod*
 
-##License
+## License
 The program is licensed under version 3 of the GPL, and a copy of the license is bundled with the program.
