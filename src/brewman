@@ -275,29 +275,17 @@ function synchronise_i {
 }
 
 function synchronise_c {
-    print_arrow_message "Homebrew Cask Cleanup"
-    brew cask cleanup
-    print_formatting_newline
-    print_arrow_message "Homebrew Cleanup"
+    print_arrow_message "Homebrew And Homebrew Cask Cleanup"
     brew cleanup
 }
 
 function synchronise_cc {
-    print_arrow_message "Homebrew Cask Cleanup"
-    brew cask cleanup
-    print_formatting_newline
-    print_arrow_message "Homebrew Cleanup"
+    print_arrow_message "Homebrew And Homebrew Cask Cleanup"
     brew cleanup -s
 }
 
 function synchronise_s {
-    print_arrow_message "Homebrew Cask Matches"
-    for elem in $@
-    do
-        brew cask search "$elem"
-    done
-    print_formatting_newline
-    print_arrow_message "Homebrew Matches"
+    print_arrow_message "Homebrew And Homebrew Cask Matches"
     for elem in $@
     do
         brew search "$elem"
@@ -320,8 +308,8 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.1.3
-/ _.-' .-.  .-.  .-.    Copyright (C) 2017 Søren Kejser Jensen
+ .--.                   Brewman 0.1.4
+/ _.-' .-.  .-.  .-.    Copyright (C) 2017 - 2018 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
                         the terms of the GNU General Public License.
@@ -347,7 +335,7 @@ EOF
 # Verifies that both brew and brew cask are installed and available in $PATH
 type brew >/dev/null 2>&1
 check_for_programs "$?" "brew"
-brew cask --version >/dev/null 2>&1
+brew cask --help >/dev/null 2>&1
 check_for_programs "$?" "brew cask"
 
 # Verifies that something was passed to the script and that the actual
