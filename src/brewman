@@ -235,10 +235,9 @@ function synchronise_y {
 
 function synchronise_u {
     print_arrow_message "Homebrew Cask Upgrade"
-    for cask in $(brew cask outdated --greedy --verbose | grep -v latest | cut -d' ' -f1)
+    for cask in $(brew cask outdated)
     do
-        # All casks with a version number are updated manually so the folders in
-        # the Caskroom are consistent with the installed version of each cask
+        # Casks without auto update capabilities are updated manually
         brew cask reinstall "$cask"
     done
 
@@ -308,7 +307,7 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.1.4
+ .--.                   Brewman 0.1.5
 / _.-' .-.  .-.  .-.    Copyright (C) 2017 - 2018 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
