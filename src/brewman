@@ -57,7 +57,7 @@ function brew_remove_with_dependencies {
 ### Query Functions
 function query {
     print_arrow_message "Homebrew Cask Query"
-    brew cask list
+    brew list --cask
     print_formatting_newline
     print_arrow_message "Homebrew Query"
     brew list --full-name
@@ -101,7 +101,7 @@ function query_dt {
 
 function query_e {
     print_arrow_message "Homebrew Cask Query"
-    brew cask list
+    brew list --cask
     print_formatting_newline
     print_arrow_message "Homebrew Query"
     brew leaves
@@ -235,10 +235,10 @@ function synchronise_y {
 
 function synchronise_u {
     print_arrow_message "Homebrew Cask Upgrade"
-    for cask in $(brew cask outdated)
+    for cask in $(brew outdated --cask)
     do
         # Casks without auto update capabilities are updated manually
-        brew cask reinstall "$cask"
+        brew reinstall "homebrew/cask/$cask"
     done
 
     print_arrow_message "Homebrew Upgrade"
