@@ -69,9 +69,8 @@ function query_d {
     print_formatting_newline
 
     print_arrow_message "Homebrew Query"
-    # "brew leaves" lists formulas that are currently not used as a dependency,
-    # not how it was installed, a functionality homebrew seems to be lacking.
-    echo "$(join -v 2 <(brew leaves | sort) <(brew list --full-name | sort))"
+    # "brew leaves" lists formulas that are currently not used as a dependency
+    echo "$(join -v 2 <(brew leaves | sort) <(brew list --formula --full-name | sort))"
 }
 
 function query_dt {
@@ -85,6 +84,7 @@ function query_dt {
     deps="$(join -v 2 <(brew leaves | sort) <(brew list --full-name | sort))"
 
     # As "brew" does not store how formulas are installed, can we only
+
     # approximately list formulas that are not required as as runtime
     # dependency nor explicitly installed. Formulas that are not used as
     # dependencies at all is listed by "brew leaves" and is indistinguishable
