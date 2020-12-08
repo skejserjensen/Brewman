@@ -304,8 +304,8 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.1.5
-/ _.-' .-.  .-.  .-.    Copyright (C) 2017 - 2018 Søren Kejser Jensen
+ .--.                   Brewman 0.2.0
+/ _.-' .-.  .-.  .-.    Copyright (C) 2017 - 2020 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
                         the terms of the GNU General Public License.
