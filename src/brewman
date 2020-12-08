@@ -38,7 +38,7 @@ function print_warning {
 function brew_remove_with_dependencies {
     for form in $@
     do
-        brew remove "$form"
+        brew uninstall "$form" --formula
 
         # Skipped if the formula could not be removed as no orphans are created
         if [[ "$?" -eq 0 ]]
@@ -59,7 +59,7 @@ function query {
     brew list --cask
     print_formatting_newline
     print_arrow_message "Homebrew Query"
-    brew list --full-name
+    brew list --formula --full-name
 }
 
 function query_d {
@@ -109,18 +109,18 @@ function query_i {
     for cask in $@
     do
         # Checks if the cask exists
-        brew cask info "$cask" &>/dev/null
+        brew info "$cask" --cask &>/dev/null
         if [[ "$?" -eq 1 ]]
         then
-            brew cask info "$cask"
+            brew info "$cask" --cask
             continue
         fi
 
         # Checks if the cask is installed
-        brew cask info "$cask" | grep -q "Not installed"
+        brew info "$cask" --cask | grep -q "Not installed"
         if [[ "$?" -eq 1 ]]
         then
-            brew cask info "$cask"
+            brew info "$cask" --cask
         else
             print_warning "cask '$cask' is not installed"
         fi
@@ -131,18 +131,18 @@ function query_i {
     for form in $@
     do
         # Checks if the formula exists
-        brew info "$form" &>/dev/null
+        brew info "$form" --formula &>/dev/null
         if [[ "$?" -eq 1 ]]
         then
-            brew info "$form"
+            brew info "$form" --formula
             continue
         fi
 
         # Checks if the formula is installed
-        brew info "$form" | grep -q "Not installed"
+        brew info "$form" --formula | grep -q "Not installed"
         if [[ "$?" -eq 1 ]]
         then
-            brew info "$form"
+            brew info "$form" --formula
             used_by=$(brew uses "$form" --installed)
             if [[ ! -z "$used_by" ]]
             then
@@ -162,7 +162,7 @@ usage: brewman -Q [package(S)]
 options:
     -e list cask and formulas installed explicitly by the user
     -d list formulas installed as dependencies for other formulas
-    -i view information and requiered dependencies for a installed packaged
+    -i view information and required dependencies for a installed package
 EOF
 }
 
@@ -171,13 +171,13 @@ function remove {
     print_arrow_message "Homebrew Cask Remove"
     for cask in $@
     do
-        brew cask remove "$cask"
+        brew uninstall "$cask" --cask
     done
     print_formatting_newline
     print_arrow_message "Homebrew Remove"
     for form in $@
     do
-        brew remove "$form"
+        brew uninstall "$form" --formula
     done
 }
 
@@ -185,7 +185,7 @@ function remove_s {
     print_arrow_message "Homebrew Cask Remove"
     for cask in $@
     do
-        brew cask remove "$cask"
+        brew uninstall "$cask" --cask
     done
     print_formatting_newline
     print_arrow_message "Homebrew Remove"
@@ -206,7 +206,7 @@ function synchronise {
     no_cask_available=""
     for cask in $@
     do
-        brew cask install "$cask"
+        brew install "$cask" --cask
         if [[ "$?" -eq 1 ]]
         then
             no_cask_available="$no_cask_available $cask"
@@ -220,7 +220,7 @@ function synchronise {
         print_arrow_message "Homebrew Synchronise"
         for form in $no_cask_available
         do
-            brew install "$form"
+            brew install "$form" --formula
         done
     fi
 }
@@ -235,7 +235,7 @@ function synchronise_u {
     for cask in $(brew outdated --cask)
     do
         # Casks without auto update capabilities are updated manually
-        brew reinstall "homebrew/cask/$cask"
+        brew reinstall "$cask" --cask
     done
 
     print_arrow_message "Homebrew Upgrade"
@@ -252,14 +252,14 @@ function synchronise_i {
     print_arrow_message "Homebrew Cask Synchronise"
     for cask in $@
     do
-        brew cask info "$cask"
+        brew info "$cask" --cask
     done
     print_formatting_newline
 
     print_arrow_message "Homebrew Synchronise"
     for form in $@
     do
-        brew info "$form"
+        brew info "$form" --formula
         used_by=$(brew uses "$form" 2>/dev/null)
         if [[ ! -z "$used_by" ]]
         then
