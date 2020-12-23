@@ -304,7 +304,7 @@ EOF
 function version {
 cat << EOF
 
- .--.                   Brewman 0.2.0
+ .--.                   Brewman 0.2.1
 / _.-' .-.  .-.  .-.    Copyright (C) 2017 - 2020 Søren Kejser Jensen
 \\  '-. '-'  '-'  '-'
  '--'                   This program may be freely redistributed under
@@ -331,7 +331,7 @@ EOF
 # Verifies that both brew and brew cask are installed and available in $PATH
 type brew >/dev/null 2>&1
 check_for_programs "$?" "brew"
-brew cask help >/dev/null 2>&1
+brew cask --help >/dev/null 2>&1
 check_for_programs "$?" "brew cask"
 
 # Verifies that something was passed to the script and that the actual
